@@ -12,6 +12,7 @@ using System.Windows.Controls;
 using System.Diagnostics;
 using System.Windows.Media;
 using System.Threading;
+using System.Linq.Expressions;
 
 namespace ImageDownloader.Classes
 {
@@ -69,26 +70,21 @@ namespace ImageDownloader.Classes
         }
 
 
-        // Tries to get response from given url link
-        private async Task<HttpResponseMessage>? EstablishConnection()
-        {
-            try
-            {
-                var response = await downloadClient.GetAsync(downLink, HttpCompletionOption.ResponseHeadersRead);
-                return response;
-            }
-            catch
-            {
-                MessageBox.Show("Could not establish connection.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return null;
-            }
-        }
-
 
         public async Task Download()
         {
             // Exceptions checking
-            var response = await EstablishConnection();
+            HttpResponseMessage? response;
+
+            try
+            {
+                response = await downloadClient.GetAsync(downLink, HttpCompletionOption.ResponseHeadersRead);
+            }
+            catch
+            {
+                response = null;
+            }
+
 
             if(response == null)
             {
