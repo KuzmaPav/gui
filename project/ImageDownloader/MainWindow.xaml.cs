@@ -15,6 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using ImageDownloader.Classes;
+using Microsoft.Win32;
 
 namespace ImageDownloader
 {
@@ -22,54 +23,65 @@ namespace ImageDownloader
     public partial class MainWindow : Window
     {
         // Store references to finalize and edit buttons
-        public Button btn_FinalizeDownload { get; private set; }
-        public Button btn_EditImage { get; private set; }
+        public Button button_FinalizeDownload { get; private set; }
+        public Button button_EditImage { get; private set; }
 
         public MainWindow()
         {
             InitializeComponent();
 
             // Assign buttons from XAML to properties
-            btn_FinalizeDownload = ButtonFinalize;
-            btn_EditImage = ButtonEdit;
+            button_FinalizeDownload = ButtonFinalize;
+            button_EditImage = ButtonEdit;
         }
 
-        private async void InitiateDownload(object sender, RoutedEventArgs e)
+        private void InitiateDownload(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(textBox_downLink.Text))
+            if (string.IsNullOrWhiteSpace(textBox_downLink.Text)) return;
+
+            if (stackPanel_downloadElems.Children.Count >= 5)
             {
-
-
-                if (stackPanel_downloadElems.Children.Count < 5)
-                {
-
-                    string downLink = textBox_downLink.Text;
-
-                    // Clear TextBox element
-                    textBox_downLink.Text = "";
-
-                    // Create a new instance of DownloadElement
-                    DownloadElement newDownloadElement = new DownloadElement(downLink, this);
-
-                    await Task.Run(() => newDownloadElement.imageDownloader.EstablishConnection());
-
-                    if (newDownloadElement.imageDownloader.response != null)
-                    {
-                        // Add child element to StackPanel element
-                        stackPanel_downloadElems.Children.Add(newDownloadElement);
-
-                        // Run async function (method) 
-                        await newDownloadElement.imageDownloader.Download();
-                    }
-
-                }
-                else
-                {
-                    MessageBox.Show("You can download only 5 images at once.","No more");
-                }
-
-                
+                MessageBox.Show("You can download only 5 images at once.", "Max downloads", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
+
+
+            var saveDialog = new SaveFileDialog();
+            saveDialog.Filter = "JPEG Image|*.jpg";
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                var downloadTask = new ImageDownloadTask(textBox_downLink.Text, saveDialog.FileName);
+
+                // Create a new instance of DownloadElement
+                DownloadElement newDownloadElement = new DownloadElement(downloadTask, this);
+
+                Task.Run(() => newDownloadElement.downloadTask.Download());
+
+                // Add child element to StackPanel element
+                stackPanel_downloadElems.Children.Add(newDownloadElement);
+
+                // Clear TextBox element
+                textBox_downLink.Text = "";
+            }
+
         }
+
+        // Unchecks all other elements in StackPanel and leave only one selected
+        public void SingleToggle(object sender)
+        {
+            var toggledButton = sender as ToggleButton;
+            foreach (var child in stackPanel_downloadElems.Children)
+                if (child is DownloadElement downloadElement && downloadElement != toggledButton && downloadElement.IsChecked == true)
+                    downloadElement.IsChecked = false;
+        }
+
+
+        // Removes element from StackPanel
+        public void RemoveDownElement(object sender)
+        {
+            stackPanel_downloadElems.Children.Remove((UIElement)sender);
+        }
+
     }
 }

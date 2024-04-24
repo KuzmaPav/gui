@@ -15,72 +15,105 @@ using System.Threading;
 
 namespace ImageDownloader.Classes
 {
-    public class ImageDownloader
+    public class ImageDownloadTask
     {
         HttpClient downloadClient;
-        ProgressBar progressBar;
+
+        List<DownloadElement> observers = new List<DownloadElement>();
 
         int chunkSize;
 
-        public bool isFinished { get; private set; } = false;
-        public BitmapImage? image { get; private set; }
+        public string state { get; private set; } = "inprogress";
 
+        public string downLink { get; private set; }
+
+        public string targetFile { get; private set; }
+
+
+        // For decreasing visual load for slower pc
         const int updateMulitplier = 1;
 
-        string downLink;
-
-        public HttpResponseMessage? response { get; private set; } = null;
-
-
-        public ImageDownloader(ProgressBar progressBar, string downLink)
+        public ImageDownloadTask(string downLink, string targetFile)
         {
             this.downloadClient = new HttpClient();
-            this.progressBar = progressBar;
             this.chunkSize = 10;
             this.downLink = downLink;
-
+            this.targetFile = targetFile;
         }
 
+        public void AddObserver(DownloadElement observer) =>
+            observers.Add(observer);
+        
 
-        // make this one work, definetly not working
-        public void ChangeLimiter(int new_limit)
-        {
+        public void ChangeLimiter(int new_limit) =>
             this.chunkSize = new_limit;
+        
+
+        //Observer notifying 
+        private void NotifyFail()
+        {
+            foreach (var observer in observers)
+                observer.OnFail();
         }
 
-        public async Task EstablishConnection()
+        private void NotifyFinish()
         {
+            foreach (var observer in observers)
+                observer.OnFinish();
+        }
 
+        private void UpdateProgress(double value)
+        {
+            foreach (var observer in observers)
+                observer.UpdateProgress(value);
+        }
+
+
+        // Tries to get response from given url link
+        private async Task<HttpResponseMessage>? EstablishConnection()
+        {
             try
             {
-                response = await downloadClient.GetAsync(downLink, HttpCompletionOption.ResponseHeadersRead);
+                var response = await downloadClient.GetAsync(downLink, HttpCompletionOption.ResponseHeadersRead);
+                return response;
             }
             catch
             {
                 MessageBox.Show("Could not establish connection.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return null;
             }
-
-
         }
 
 
-
-        // maybe working not properly tested yet
-        public async Task Download()                 // vložit all to try body
+        public async Task Download()
         {
+            // Exceptions checking
+            var response = await EstablishConnection();
 
-
-            if (response == null)
-                throw new Exception("Establish connection first");
+            if(response == null)
+            {
+                NotifyFail();
+                state = "failed";
+                return;
+            }
             
-
             if (!response.IsSuccessStatusCode)
             {
                 MessageBox.Show($"Invalid image link\nWeb response: {response.StatusCode}");
+                NotifyFail();
+                state = "failed";
                 return;
             }
 
+            if (!response.Content.Headers.ContentType.ToString().Contains("image"))
+            {
+                MessageBox.Show("Given url is not an image url.");
+                NotifyFail();
+                state = "failed";
+                return;
+            }
+
+            // Declaring variables
             long totalImgSize = response.Content.Headers.ContentLength ?? -1;
 
             bool canReportState = false;
@@ -90,46 +123,47 @@ namespace ImageDownloader.Classes
 
             long totalBytesRead = 0;
 
+            var buffer = new byte[this.chunkSize * updateMulitplier];
+            int bytesRead;
 
-            using (var contentStream = await response.Content.ReadAsStreamAsync())
-            using (var fileStream = totalImgSize != -1 ? new MemoryStream((int)totalImgSize) : new MemoryStream())
+            var chunkTimeStart = Stopwatch.StartNew();
+
+            // Logic
+            try
             {
-                var buffer = new byte[this.chunkSize * updateMulitplier];
-                int bytesRead;
-
-                var chunkTimeStart = Stopwatch.StartNew();
-
-                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                using (var contentStream = await response.Content.ReadAsStreamAsync())
+                using (var fileStream = new FileStream(targetFile, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
                 {
-                    chunkTimeStart.Restart();
 
-                    await fileStream.WriteAsync(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
+                    while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        chunkTimeStart.Restart();
 
-                    if (chunkSize != buffer.Length)
-                        buffer = new byte[this.chunkSize * updateMulitplier];
+                        await fileStream.WriteAsync(buffer, 0, bytesRead);
+                        totalBytesRead += bytesRead;
 
-                    if (canReportState)
-                        progressBar.Value = (double)totalBytesRead / totalImgSize * 100;
+                        if (chunkSize != buffer.Length)
+                            buffer = new byte[this.chunkSize * updateMulitplier];
 
-                    await Task.Delay(int.Max(0, (1000 * updateMulitplier) - (int)chunkTimeStart.ElapsedMilliseconds));
+
+                        if (canReportState)
+                            UpdateProgress((double)totalBytesRead / totalImgSize);
+
+                        await Task.Delay(int.Max(0, (1000 * updateMulitplier) - (int)chunkTimeStart.ElapsedMilliseconds));
+                    }
+
+                    state = "finished";
+                    NotifyFinish();
                 }
-
-
-                // Convert byte[] to BitmapImage
-                image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                fileStream.Seek(0, SeekOrigin.Begin);
-                image.StreamSource = fileStream;
-                image.EndInit();
-
-                isFinished = true;
-
-
             }
 
+            catch
+            {
+                state = "failed";
+                NotifyFail();
+            }
+                
         }
-
     }
 }
+

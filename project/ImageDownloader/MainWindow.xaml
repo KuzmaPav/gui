@@ -39,16 +39,15 @@
                 </ToggleButton>
                 -->
 
-
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Width="200" MinWidth="100" MaxWidth="250" Height="250">
+            <StackPanel Grid.Column="1" Width="200" MinWidth="100" MaxWidth="200" Height="250">
 
                 <Label Content="Adresa Obrázku" HorizontalAlignment="Center" FontSize="15"/>
                 <TextBox x:Name="textBox_downLink" Margin="5" Height="auto" FontSize="15" Padding="5"/>
                 <Button Content="Download" Click="InitiateDownload" Margin="5" Height="30" FontSize="15"/>
                 <Button x:Name="ButtonEdit" Content="Edit" IsEnabled="False" Margin="5" Height="30" FontSize="15"/>
-                <Button x:Name="ButtonFinalize" Content="Finalize" IsEnabled="False" Margin="5" Height="30" FontSize="15"/>
+                <Button x:Name="ButtonFinalize" Content="Close element" IsEnabled="False" Margin="5" Height="30" FontSize="15"/>
 
             </StackPanel>
         </Grid>
