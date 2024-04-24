@@ -59,3 +59,175 @@ Nektere akce v metode Main
 4. Zatímco asynchronní úloha Task.Run((()=>Print())) běží (a může běžet poměrně dlouho), provádění kódu se vrací k volající metodě - tedy k metodě Main.
 5. Jakmile asynchronní úloha dokončí své provádění (ve výše uvedeném případě vytiskla řádek po třech sekundách), pokračuje v běhu asynchronní metoda PrintAsync, která asynchronní úlohu volala.
 6. Po dokončení metody PrintAsync pokračuje ve svém běhu metoda Main.
+
+### Asynchronní metoda Main
+Je třeba vzít v úvahu, že operátor **await** lze použít pouze v metodě, která má modifikátor **async**. A pokud operátor **await** použijeme v metodě Main, musí být metoda Main také definována jako asynchronní. To znamená, že předchozí příklad bude vlastně podobný tomu následujícímu:
+```
+class Program
+{
+    async static Task Main(string[] args)
+    {
+        await PrintAsync();   // volání asynchronní metody
+        Console.WriteLine("Některé akce v metodě Main");
+ 
+ 
+        void Print()
+        {
+            Thread.Sleep(3000);     // simulace nepřetržitého provozu
+            Console.WriteLine("Hello WORLD AND STUDENTS");
+        }
+ 
+        // definice asynchronní metody
+        async Task PrintAsync()
+        {
+            Console.WriteLine("Začátek metody PrintAsync"); // provedeno synchronně
+            await Task.Run(() => Print());                // provedeno asynchronně
+            Console.WriteLine("Konec metody PrintAsync");
+        }
+    }
+}
+```
+
+### Zpoždění asynchronní operace a Task.Delay
+V asynchronních metodách lze metodu **Task.Delay()** použít k zastavení metody na určitou dobu. Jako parametr přijímá počet milisekund jako hodnotu int nebo objekt TimeSpan, který určuje dobu zpoždění:
+```
+await PrintAsync();   // volání asynchronní metody
+Console.WriteLine("Některé akce v metodě Main");
+ 
+// definice asynchronní metody
+async Task PrintAsync()
+{
+    await Task.Delay(3000);     // simulace nepřetržitého provozu
+    // nebo tak nějak
+    //await Task.Delay(TimeSpan.FromMilliseconds(3000));
+    Console.WriteLine("Hello WORLD AND STUDENTS");
+}   
+```
+Metoda Task.Delay je navíc sama o sobě asynchronní operací, takže je na ni aplikován operátor await.
+
+### Výhody asynchronnosti
+Výše uvedené příklady jsou zjednodušené a lze je jen stěží považovat za ilustrativní. Uvažujme jiný příklad:
+```
+PrintName("Tom");
+PrintName("Bob");
+PrintName("Sam");
+ 
+void PrintName(string name)
+{
+    Thread.Sleep(3000);     // 
+    Console.WriteLine(name);
+}
+```
+Tento kód je synchronní a provede postupně tři volání metody PrintName. Vzhledem k tomu, že metoda má třísekundové zpoždění, které simuluje dlouhou operaci, bude celkové provedení programu trvat nejméně 9 sekund. Protože každé další volání metody PrintName bude čekat, dokud nebude předchozí volání dokončeno.
+
+Změňme synchronní metodu PrintName na asynchronní:
+```
+await PrintNameAsync("Tom");
+await PrintNameAsync("Bob");
+await PrintNameAsync("Sam");
+ 
+// definice asynchronní metody
+async Task PrintNameAsync(string name)
+{
+    await Task.Delay(3000);     // simulace nepřetržitého provozu
+    Console.WriteLine(name);
+}
+```
+Namísto metody PrintName je nyní metoda PrintNameAsync volána třikrát. Pro simulaci dlouhé doby běhu je metoda odložena o 3 sekundy voláním Task.Delay(3000). A protože každé volání metody využívá operátor await, který zastaví její provádění, dokud není asynchronní metoda dokončena, bude celkové provádění programu opět trvat nejméně 9 sekund. Nicméně nyní provádění asynchronních operací neblokuje hlavní vlákno.
+
+Nyní program optimalizujme:
+```
+var tomTask = PrintNameAsync("Tom");
+var bobTask = PrintNameAsync("Bob");
+var samTask = PrintNameAsync("Sam");
+ 
+await tomTask;
+await bobTask;
+await samTask;
+// definice asynchronní metody
+async Task PrintNameAsync(string name)
+{
+    await Task.Delay(3000);     // simulace nepřetržitého provozu
+    Console.WriteLine(name);
+}
+```
+V tomto případě se úlohy skutečně spouštějí při definici. A operátor await se používá pouze tehdy, když potřebujeme počkat na dokončení asynchronních operací - tedy na konci programu. A v tomto případě bude celkové provedení programu trvat ne méně než 3 sekundy, ale mnohem méně než 9 sekund.
+
+## Vrátit výsledek z asynchronní metody
+Jako návratový typ v asynchronní metodě musí být použit typ **void**, **Task**, **Task<T>** nebo **ValueTask<T>**.
+
+### void
+Pokud je použito klíčové slovo void, asynchronní metoda nic nevrací:
+```
+PrintAsync("Hello World");
+PrintAsync("Hello STUDENTS");
+ 
+Console.WriteLine("Main End");
+await Task.Delay(3000); // čekání na dokončení úkolů
+ 
+// definice asynchronní metody
+async void PrintAsync(string message)
+{
+    await Task.Delay(1000);     // simulace nepřetržitého provozu
+    Console.WriteLine(message);
+}   
+```
+Asynchronním metodám void je však třeba se vyhnout a používat je pouze v případech, kdy podobné metody představují jediný možný způsob, jak definovat asynchronní metodu. Především na takové metody nemůžeme použít operátor await. Také proto, že výjimky v takových metodách se obtížně ošetřují, protože je nelze zachytit mimo metodu. Kromě toho se takové void metody obtížně testují.
+
+Přesto existují situace, kdy se bez takových metod neobejdeme - například při zpracování událostí:
+```
+Account account = new Account();
+account.Added += PrintAsync;
+ 
+account.Put(500);
+ 
+await Task.Delay(2000); // čeká na dokončení
+ 
+// definice asynchronní metody
+async void PrintAsync(object? obj, string message)
+{
+    await Task.Delay(1000);     // simulace nepřetržitého provozu
+    Console.WriteLine(message);
+}
+ 
+class Account
+{
+    int sum = 0;
+    public event EventHandler<string>? Added;
+    public void Put(int sum)
+    {
+        this.sum += sum;
+        Added?.Invoke(this, $"Na účet byl připsán {sum} $");
+    }
+}
+```
+V tomto případě je událost Přidáno ve třídě Účet reprezentována delegátem EventHandler, který má typ void. Proto lze pro tuto událost definovat pouze metodu obsluhy s typem void.
+
+### Task
+Vrátí objekt typu Task:
+```
+await PrintAsync("Hello WORLD AND STUDENTS");
+ 
+// definice asynchronní metody
+async Task PrintAsync(string message)
+{
+    await Task.Delay(1000);     // simulace nepřetržitého provozu
+    Console.WriteLine(message);
+}
+```
+Zde metoda PrintAsync formálně nepoužívá k vrácení výsledku operátor return. Pokud je však v asynchronní metodě v příkazu await provedena asynchronní operace, můžeme z metody vrátit objekt Task.
+
+Chceme-li počkat na dokončení asynchronní úlohy, můžeme použít operátor **await**. A není nutné jej používat přímo při volání úlohy. Lze jej použít pouze tam, kde potřebujeme zaručit, že dostaneme výsledek úlohy, nebo se ujistit, že úloha byla dokončena.
+```
+var task = PrintAsync("Hello WORLD AND STUDENTS"); // spuštění úlohy
+Console.WriteLine("Main Works");
+ 
+await task; // počkat na dokončení úkolu
+ 
+// definice asynchronní metody
+async Task PrintAsync(string message)
+{
+    await Task.Delay(0);
+    Console.WriteLine(message);
+}
+```
