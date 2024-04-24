@@ -1,44 +1,14 @@
 # WPF Async
 
+# StahovaÄ ObrÃ¡zkÅ¯
 
 
 
+- **VytvÃ¡Å™enÃ­ xml elementÅ¯ v C#**
+	- Ve WPF lze pÅ™i bÄ›hu programu upravovat xml elementy, ale i pÅ™idÃ¡vat novÃ©. *(SouÄÃ¡stÃ­ `System.Windows.Controls` modulu)* 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Informace mimo vhodné znát pro hlavní projekt
-
-- **HttpClient**
-	- Tøída vytváøející propojení s internetem.
-
-- **Vytváøení xml elementù v C#**
-	- Ve WPF lze pøi bìhu programu upravovat xml elementy, ale i pøidávat nové. *(Souèástí `System.Windows.Controls` modulu)* 
-
-- **?? operátor**
-	- '??' je null-koalesèní operátor, kterı pøevede hodnotu null na nìjakou default hodnotu. Umoòuje rychlı pøevod z typu s null hodnotu na typ bez null hodnoty. `set: int? num = null` `get: num = null` -> `set: int num = null ?? 0` `get: num = 0`
+- **?? operÃ¡tor**
+	- '??' je null-koalesÄnÃ­ operÃ¡tor, kterÃ½ pÅ™evede hodnotu null na nÄ›jakou default hodnotu. UmoÅ¾Åˆuje rychlÃ½ pÅ™evod z typu s null hodnotu na typ bez null hodnoty. `set: int? num = null` `get: num = null` -> `set: int num = null ?? 0` `get: num = 0`
 
 - **condition ? expression1 : expression2**
-	- ternární operátor. Pokud je podmínka splnìná, vrátí se `expression1`, pokud ne tak `expression2`.
+	- ternÃ¡rnÃ­ operÃ¡tor. Pokud je podmÃ­nka splnÄ›nÃ¡, vrÃ¡tÃ­ se `expression1`, pokud ne tak `expression2`.
