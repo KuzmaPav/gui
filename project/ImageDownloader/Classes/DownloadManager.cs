@@ -22,22 +22,22 @@ namespace ImageDownloader.Classes
 
         List<DownloadElement> observers = new List<DownloadElement>();
 
-        int chunkSize;
-
-        public string state { get; private set; } = "inprogress";
-
         public string downLink { get; private set; }
 
         public string targetFile { get; private set; }
+
+        int chunkSize;
+
+        public string state { get; private set; } = "inprogress";
 
 
         // For decreasing visual load for slower pc
         const int updateMulitplier = 1;
 
-        public ImageDownloadTask(string downLink, string targetFile)
+        public ImageDownloadTask(string downLink, string targetFile, int chunkSize = 10)
         {
             this.downloadClient = new HttpClient();
-            this.chunkSize = 10;
+            this.chunkSize = chunkSize;
             this.downLink = downLink;
             this.targetFile = targetFile;
         }
@@ -74,19 +74,13 @@ namespace ImageDownloader.Classes
         public async Task Download()
         {
             // Exceptions checking
-            HttpResponseMessage? response;
+            HttpResponseMessage response;
 
             try
             {
                 response = await downloadClient.GetAsync(downLink, HttpCompletionOption.ResponseHeadersRead);
             }
             catch
-            {
-                response = null;
-            }
-
-
-            if(response == null)
             {
                 NotifyFail();
                 state = "failed";

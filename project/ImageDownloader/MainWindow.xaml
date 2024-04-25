@@ -22,19 +22,18 @@
             
             <StackPanel x:Name="stackPanel_downloadElems" Grid.Column="0" MinWidth="200">
 
-                <!-- seznam stahovaných souborů -->
+                <!-- List of downloading elements -->
 
                 
-                <!-- example
-                <ToggleButton BorderBrush="Gray" BorderThickness="2" Height="50" Margin="10" Padding="5">
-                    <StackPanel Orientation="Horizontal" >
-                        <Image RenderSize="50,50"/>
-                        <Label Content=":Imagelinkpath:" MaxWidth="200"/>
-                        <Label Content="Down limit:"/>
-                        <Label Content="10"/>
-                        <Label Content="KB/s"/>
-                        <Slider/>
-                        <ProgressBar/>
+                <!-- Generated element example
+                <ToggleButton BorderThickness="2" Height="50" Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="URL download link" MaxWidth="200" Margin="5"/>
+                        <Label Content="Down limit:" Margin="5,5,0,5"/>
+                        <TextBox Text="10" Width="40" Height="20" Margin="0,5,0,5" TextChanged="LimitTextBox_TextChanged"/>
+                        <Label Content="KB/s" Margin="0,5,5,5"/>
+                        <Slider Minimum="1" Maximum="1000" Value="10" Width="50" Height="20" Margin="5" ValueChanged="LimitSlider_ValueChanged"/>
+                        <ProgressBar MinWidth="25" Width="100" Minimum="0" Maximum="1" Height="20" Margin="5"/>
                     </StackPanel>
                 </ToggleButton>
                 -->
@@ -43,6 +42,8 @@
 
             <StackPanel Grid.Column="1" Width="200" MinWidth="100" MaxWidth="200" Height="250">
 
+                <!-- Controling elements -->
+                
                 <Label Content="Adresa Obrázku" HorizontalAlignment="Center" FontSize="15"/>
                 <TextBox x:Name="textBox_downLink" Margin="5" Height="auto" FontSize="15" Padding="5"/>
                 <Button Content="Download" Click="InitiateDownload" Margin="5" Height="30" FontSize="15"/>
